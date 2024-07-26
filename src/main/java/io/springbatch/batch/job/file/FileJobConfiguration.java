@@ -7,6 +7,7 @@ import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
@@ -27,8 +28,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 @Configuration
 public class FileJobConfiguration {
 
-    @Value("#{jobParameters['requestDate']}")
-    private String requestDate;
+
 
     private final EntityManagerFactory entityManagerFactory;
 
@@ -44,14 +44,15 @@ public class FileJobConfiguration {
     public Step fileStep(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
         return new StepBuilder("fileStep", jobRepository)
                 .<ProductVO, Product>chunk(10, transactionManager)
-                .reader(fileItemReader())
+                .reader(fileItemReader(null))
                 .processor(fileItemProcessor())
                 .writer(fileItemWriter())
                 .build();
     }
 
     @Bean
-    public FlatFileItemReader<ProductVO> fileItemReader() {
+    @StepScope
+    public FlatFileItemReader<ProductVO> fileItemReader( @Value("#{jobParameters['requestDate']}") String requestDate) {
         return new FlatFileItemReaderBuilder<ProductVO>()
                 .name("flatFile")
                 .resource(new ClassPathResource("product_" + requestDate + ".csv"))
